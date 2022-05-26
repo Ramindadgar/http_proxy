@@ -1,76 +1,67 @@
-import socketserver
+import re
 from http import server
 import urllib.request
 import webbrowser
-from .db import webBlock_db
+from database import db
 
-
-"""HTTP PROXY, WEB BLOCKER
+"""
+HTTP PROXY, WEB BLOCKER
 
     Website I test on:
     localhost:8000/http://httpvshttps.com
 
     Server running on localhost port 8000. So to test entering a http website enter in the browser
-    localhost:8000/http://example.com (example.com is also a test http website)"""
+    localhost:8000/http://example.com (example.com is also a test http website)
+"""
 
-# decalaring the database object from db.py file
-database = webBlock_db()
-
-# database.create_table()
-
-# add a website to tabel in database
-
-# database.add_one('http://httpvshttps.com', 'www.httpvshttps.com')
-
-PORT = 8000
-BLOCK_DOMAIN = database.show_all_blockes()
-print(f"This is all the blocked domains: {BLOCK_DOMAIN}")
+"""
+httpd
+    Fetching the URL from conn-class and do_GET function,
+    Then printing listening to let the user know the server is active,
+    Then uses the serve_forever module. And only breaks the connection when user stops it, with command, ctrl + C
+"""
 
 
 class MyProxy(server.SimpleHTTPRequestHandler):
 
     def redirect_to_new_website(self):
-        """Simple function to redirect user to another 
+        """
+        Simple function to redirect user to another
         website when trying to enter a blocked domain.
         """
         newUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-        print("redirecting due to banned website")
         return newUrl
 
+
     def do_GET(self):
-        """Connection function
-            Fetching the URL from path.
-            checks if the URL is in BLOCK_DOMAIN.
-            If all is good, sends response and header and connects."""
-        # print('request received from browser')
-        url = self.path[1:]
-        if url in BLOCK_DOMAIN:
-            newurl = self.redirect_to_new_website()
-            webbrowser.open(newurl)
-            # url = newurl
-            self.wfile.write('Bad website'.encode())
-            self.send_response(307)
-        # Headers send cookies, session data etc
-        self.send_response(200)
-        self.end_headers()
-        self.copyfile(urllib.request.urlopen(url), self.wfile)
+        """
+        Connection function
+        Fetching the URL from path.
+        checks if the URL is in BLOCK_DOMAIN.
+        If all is good, sends response and header and connects.
 
-"""httpd
-    Fetching the URL from conn-class and do_GET function,
-    Then printing listening to let the user know the server is active,
-    Then uses the serve_forever module. And only breaks the connection when user stops it, with command, ctrl + C"""
+        plz using this pattern in url for test:
+        'http://www.test.com'
+        'm.google.com',
+        'google.com',
+        'www.someisotericdomain.innersite.mall.co.uk',
+        'www.ouruniversity.department.mit.ac.us',
+        'www.somestrangeurl.shops.relevantdomain.net',
+        'www.example.info'
+        """
+        res = re.findall(r'(?<=\.)([^.]+)(?:\.(?:co\.uk|ac\.us|[^.]+(?:$|\n)))', self.path)
+        all_domains = db.get_all_name_web_sites()
+        block_list = [item[0] for item in all_domains]
+        try:
+            if res[0] in block_list:
+                newurl = self.redirect_to_new_website()
+                webbrowser.open(newurl)
+                self.wfile.write('Blocked website...!!!'.encode())
+                self.send_response(403)
 
-httpd = socketserver.ForkingTCPServer(('', PORT), MyProxy)
-print("listening...")
-httpd.serve_forever()
-
-# FROM_DOMAIN = MyProxy()
-# TO_DOMAIN = 'https://youtube.com'
-# from urllib.parse import urlparse, urlunparse
-# from flask import redirect, request
-# def redirect_to_new_domain():
-#     urlparts = urlparse(request.url)
-#     if urlparts.netloc == FROM_DOMAIN:
-#         urlparts_list = list(urlparts)
-#         urlparts_list[1] = TO_DOMAIN
-#         return redirect(urlunparse(urlparts_list), code=301)
+            else:
+                self.send_response(200)
+                self.end_headers()
+                self.copyfile(urllib.request.urlopen(res[0]), self.wfile)
+        except Exception as ex:
+            print(ex)

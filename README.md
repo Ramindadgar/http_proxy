@@ -7,6 +7,10 @@
     Set to "Manual proxy conf" and in the box called "HTTP Proxy" do the changes below.
 - Enter localhost and listening port same as in the python program.
 - python3 app/proxy_server.py to execute the program.
+- On Linux:
+socketserver.ForkingTCPServer
+- On windows:
+socketserver.ThreadingTCPServer
 - Listening port in browser must be the same as in the python script.
 
 ## Go to a http-test-site 
