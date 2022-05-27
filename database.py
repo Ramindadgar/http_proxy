@@ -79,14 +79,6 @@ class DatabaseHandler:
         else:
             return False
 
-    def get_movie_price(self, movie):
-        price = ('SELECT price FROM movies  WHERE movie_name = ? ')
-        self.cursor.execute(price, [movie])
-        result = self.cursor.fetchall()
-        if result:
-            return result[0][0]
-        else:
-            return False
 
     def update_web_sites(self, selected_item, web_site):
         update = """UPDATE block_list set web_address = ? WHERE ID = ?;"""
